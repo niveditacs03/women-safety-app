@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, h1 {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        #map {
+            height: 50vh;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin: 20px auto;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        #location {
+            font-size: 16px;
+            margin: 20px 0;
+            color: #555;
+            background-color: #e8eef3;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .emergency-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+        .emergency-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(220, 53, 69, 0.4);
+        }
+        .emergency-btn:active {
+            transform: translateY(1px);
+        }
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emergency Location Tracker</h1>
+        <button id="emergencyBtn" class="emergency-btn">
+            EMERGENCY CALL
+        </button>
+        <div id="map"></div>
+        <div id="location" class="loading">Detecting your location...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="cordova.js"></script>
+    <script>
+        let map, marker;
+        const EMERGENCY_NUMBER = '8714928867';
+
+        // Initialize map with specific location
+        function initMapWithLocation(latitude, longitude) {
+            if (map) {
+                map.remove();
+            }
+
+            map = L.map('map').setView([latitude, longitude], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            marker = L.marker([latitude, longitude]).addTo(map);
+            
+            if (arguments[2] && arguments[2].accuracy) {
+                L.circle([latitude, longitude], {
+                    radius: arguments[2].accuracy,
+                    color: 'blue',
+                    fillColor: '#3388ff',
+                    fillOpacity: 0.1
+                }).addTo(map);
+            }
+        }
+
+        // Handle successful location retrieval
+        function handleLocationSuccess(position) {
+            const locationDiv = document.getElementById('location');
+            locationDiv.classList.remove('loading');
+
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            initMapWithLocation(latitude, longitude, {accuracy: accuracy});
+            
+            locationDiv.innerHTML = `
+                Your Location:<br>
+                Latitude: ${latitude.toFixed(6)}<br>
+                Longitude: ${longitude.toFixed(6)}<br>
+                Accuracy: ±${Math.round(accuracy)}m
+            `;
+        }
+
+        // Handle location errors
+        function handleLocationError(error) {
+            const locationDiv = document.getElementById('location');
+            locationDiv.classList.remove('loading');
+
+            let errorMessage = 'Unable to retrieve your location. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage += 'Please enable location permissions.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += 'Location information is unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += 'Location request timed out.';
+                    break;
+                default:
+                    errorMessage += 'An unknown error occurred.';
+            }
+            
+            locationDiv.innerHTML = errorMessage;
+            console.error('Geolocation error:', error);
+        }
+
+        // Make emergency call
+        function makeEmergencyCall() {
+            window.plugins.CallNumber.callNumber(
+                function(result) {
+                    console.log("Call success: " + result);
+                },
+                function(error) {
+                    console.error("Call error: " + error);
+                    alert("Failed to initiate emergency call. Please dial " + EMERGENCY_NUMBER + " manually.");
+                },
+                EMERGENCY_NUMBER,
+                true
+            );
+        }
+
+        // Get user's location
+        function getUserLocation() {
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            const watchId = navigator.geolocation.watchPosition(
+                handleLocationSuccess,
+                handleLocationError,
+                options
+            );
+
+            window.addEventListener('beforeunload', () => {
+                navigator.geolocation.clearWatch(watchId);
+            });
+        }
+
+        // Initialize everything when device is ready
+        document.addEventListener('deviceready', function() {
+            // Set up emergency button
+            document.getElementById('emergencyBtn').addEventListener('click', makeEmergencyCall);
+            
+            // Start location tracking
+            getUserLocation();
+        }, false);
+    </script>
+</body>
+</html>

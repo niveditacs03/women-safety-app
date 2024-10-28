@@ -1,0 +1,96 @@
+/* Reset default browser styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Body and layout settings */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    color: #333;
+    padding: 20px;
+}
+
+/* Back Button styling */
+#backButton {
+    align-self: flex-start;
+    margin: 10px 0;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#backButton:hover {
+    background-color: #0056b3;
+}
+
+/* Heading styling */
+h1 {
+    font-size: 24px;
+    color: #2c3e50;
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* Form styling */
+#contactForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#contactForm label {
+    align-self: flex-start;
+    font-size: 18px;
+    margin: 10px 0 5px;
+    color: #555;
+}
+
+#contactForm input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+#contactForm input:focus {
+    border-color: #007bff;
+}
+
+/* Submit button styling */
+#contactForm button[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    color: #fff;
+    background-color: #28a745;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#contactForm button[type="submit"]:hover {
+    background-color: #218838;
+}

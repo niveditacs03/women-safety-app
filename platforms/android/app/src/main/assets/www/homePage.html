@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/index.css">
+    <title>Emergency Contact Home Page</title>
+    <style>
+        /* Previous styles remain the same */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 { margin-bottom: 50px; }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #007bff; color: white; }
+        .top-btn-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .top-btn-container button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .contacts-list { margin-top: 20px; display: none; }
+        .contact-item {
+            background-color: #fff;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .contact-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .call-btn, .delete-btn {
+            width: 80px;
+            height: 35px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            text-align: center;
+        }
+        .call-btn { background-color: #28a745; }
+        .call-btn:hover { background-color: #218838; }
+        .delete-btn { background-color: #dc3545; }
+        .delete-btn:hover { background-color: #c82333; }
+        #locationStatus {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-btn-container">
+        <button id="addNumbersBtn">Add Contacts</button>
+        <button id="toggleTracking" style="background-color: #dc3545;">Start Tracking</button>
+    </div>
+
+    <h1>Emergency Contact</h1>
+    <button id="callPolice">Call Police</button>
+    <button id="MedicalHelp">Get Medical Help</button>
+    <button id="callFamily">Call Family</button>
+
+    <div id="familyContacts" class="contacts-list">
+        <h2>Your Saved Family Contacts</h2>
+        <div id="contactList"></div>
+    </div>
+
+    <div id="locationStatus">Location tracking active</div>
+
+    <script>
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail || !localStorage.getItem('userPassword')) {
+            window.location.href = 'loginPage.html';
+        }
+
+        // Emergency numbers
+        const EMERGENCY_NUMBERS = {
+            police: '911',
+            medical: '911'
+        };
+
+        let isTracking = false;
+        let watchId = null;
+        let lastLocation = null;
+        const locationUpdateInterval = 30000; // 30 seconds
+        
+        // Initialize tracking status
+        const trackingEnabled = localStorage.getItem('trackingEnabled') === 'true';
+        if (trackingEnabled) {
+            startTracking();
+        }
+
+        // Location tracking functions
+        function startTracking() {
+            if (!isTracking && 'geolocation' in navigator) {
+                try {
+                    // Request background location permission if available
+                    if (navigator.permissions) {
+                        navigator.permissions.query({ name: 'geolocation' })
+                            .then(permission => {
+                                if (permission.state === 'granted') {
+                                    initializeTracking();
+                                } else {
+                                    requestLocationPermission();
+                                }
+                            });
+                    } else {
+                        requestLocationPermission();
+                    }
+                } catch (error) {
+                    console.error('Error starting tracking:', error);
+                    alert('Unable to start location tracking. Please ensure location services are enabled.');
+                }
+            }
+        }
+
+        function requestLocationPermission() {
+            navigator.geolocation.getCurrentPosition(
+                () => initializeTracking(),
+                (error) => {
+                    console.error('Location permission denied:', error);
+                    alert('Location permission is required for emergency services.');
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+
+        function initializeTracking() {
+            watchId = navigator.geolocation.watchPosition(
+                updateLocation,
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 30000,
+                    timeout: 27000
+                }
+            );
+            
+            isTracking = true;
+            localStorage.setItem('trackingEnabled', 'true');
+            document.getElementById('locationStatus').style.display = 'block';
+            document.getElementById('toggleTracking').textContent = 'Stop Tracking';
+            document.getElementById('toggleTracking').style.backgroundColor = '#28a745';
+        }
+
+        function stopTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            isTracking = false;
+            localStorage.setItem('trackingEnabled', 'false');
+            document.getElementById('locationStatus').style.display = 'none';
+            document.getElementById('toggleTracking').textContent = 'Start Tracking';
+            document.getElementById('toggleTracking').style.backgroundColor = '#dc3545';
+        }
+
+        function updateLocation(position) {
+            lastLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Store location in localStorage
+            const locations = JSON.parse(localStorage.getItem('locationHistory') || '[]');
+            locations.push(lastLocation);
+            
+            // Keep only last 50 locations
+            if (locations.length > 50) {
+                locations.shift();
+            }
+            
+            localStorage.setItem('locationHistory', JSON.stringify(locations));
+            
+            // Send location to server (implement this based on your backend)
+            sendLocationToServer(lastLocation);
+        }
+
+        function handleLocationError(error) {
+            console.error('Location tracking error:', error);
+            stopTracking();
+            alert('Location tracking error. Please ensure location services are enabled.');
+        }
+
+        async function sendLocationToServer(location) {
+            // Implement your server communication here
+            // For example:
+            /*
+            try {
+                await fetch('your-server-endpoint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userEmail,
+                        location
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to send location to server:', error);
+            }
+            */
+        }
+
+        // Event Listeners
+        document.getElementById('toggleTracking').addEventListener('click', () => {
+            if (isTracking) {
+                stopTracking();
+            } else {
+                startTracking();
+            }
+        });
+
+        document.getElementById('addNumbersBtn').onclick = function() {
+            window.location.href = 'addContacts.html';
+        };
+
+        document.getElementById('callPolice').onclick = function() {
+            makeEmergencyCall(EMERGENCY_NUMBERS.police, 'Police');
+        };
+
+        document.getElementById('MedicalHelp').onclick = function() {
+            makeEmergencyCall(EMERGENCY_NUMBERS.medical, 'Medical Services');
+        };
+
+        document.getElementById('callFamily').onclick = function() {
+            displayContacts();
+        };
+
+        function makeEmergencyCall(number, service) {
+            // Ensure tracking is active before making emergency call
+            if (!isTracking) {
+                startTracking();
+            }
+            
+            // Attempt to make the call
+            try {
+                window.location.href = `tel:${number}`;
+                
+                // Send emergency alert with location
+                if (lastLocation) {
+                    sendEmergencyAlert(service, lastLocation);
+                }
+            } catch (e) {
+                console.error("Failed to initiate call:", e);
+                alert(`Please dial ${number} manually to contact ${service}.`);
+            }
+        }
+
+        async function sendEmergencyAlert(service, location) {
+            // Implement your emergency alert system here
+            // For example:
+            /*
+            try {
+                await fetch('your-emergency-alert-endpoint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userEmail,
+                        service,
+                        location,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to send emergency alert:', error);
+            }
+            */
+        }
+
+        function displayContacts() {
+            const familyContacts = document.getElementById('familyContacts');
+            const contactList = document.getElementById('contactList');
+            contactList.innerHTML = '';
+
+            const contactsKey = `emergencyContacts_${userEmail}`;
+            const contacts = JSON.parse(localStorage.getItem(contactsKey)) || [];
+
+            if (contacts.length === 0) {
+                contactList.innerHTML = '<p>No contacts saved. Please add contacts first.</p>';
+            } else {
+                contacts.forEach((contact, index) => {
+                    const contactItem = document.createElement('div');
+                    contactItem.classList.add('contact-item');
+                    contactItem.innerHTML = `
+                        <span><strong>${contact.name}</strong>: ${contact.number}</span>
+                        <div class="contact-actions">
+                            <a href="tel:${contact.number}" 
+                               class="call-btn" 
+                               style="text-decoration: none; line-height: 35px;"
+                               onclick="handleEmergencyContact('${contact.name}', '${contact.number}')">Call</a>
+                            <button class="delete-btn" onclick="deleteContact(${index})">Delete</button>
+                        </div>
+                    `;
+                    contactList.appendChild(contactItem);
+                });
+            }
+            familyContacts.style.display = 'block';
+        }
+
+        function handleEmergencyContact(name, number) {
+            if (!isTracking) {
+                startTracking();
+            }
+            
+            // Send alert that emergency contact is being called
+            if (lastLocation) {
+                sendEmergencyAlert(`Emergency Contact: ${name}`, lastLocation);
+            }
+        }
+
+        function deleteContact(index) {
+            const contactsKey = `emergencyContacts_${userEmail}`;
+            let contacts = JSON.parse(localStorage.getItem(contactsKey)) || [];
+            contacts.splice(index, 1);
+            localStorage.setItem(contactsKey, JSON.stringify(contacts));
+            displayContacts();
+        }
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isTracking) {
+                // Ensure tracking continues in background
+                navigator.geolocation.getCurrentPosition(updateLocation, handleLocationError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 30000,
+                    timeout: 27000
+                });
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (isTracking) {
+                // Save tracking state
+                localStorage.setItem('trackingEnabled', 'true');
+            }
+        });
+    </script>
+</body>
+</html>
