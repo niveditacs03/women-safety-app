@@ -1,0 +1,45 @@
+<!-- signup.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <form id="signupForm" class="form">
+                <h2>Sign Up</h2>
+                <div class="input-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" name="email" placeholder="Enter your email" required>
+                </div>
+                <div class="input-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit">Sign Up</button>
+                <p id="signup-error-message"></p>
+                <p>Already have an account? <a href="loginPage.html">Login</a></p>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            // Store user info in local storage
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userPassword', password);
+
+            alert('Registration successful! You can now log in.');
+            window.location.href = 'loginPage.html'; // Redirect to login page after signup
+        });
+    </script>
+</body>
+</html>

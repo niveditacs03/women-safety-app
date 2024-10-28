@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/addcontact.css">
+    <title>Add Contacts</title>
+</head>
+<body>
+    <h1>Add Emergency Contacts</h1>
+    
+    <!-- Back Button -->
+    <button id="backButton">Back to Home</button>
+
+    <form id="contactForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <label for="number">Phone:</label>
+        <input type="tel" id="number" required>
+        <button type="submit">Add Contact</button>
+    </form>
+
+    <script>
+        // Check if user is logged in
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail || !localStorage.getItem('userPassword')) {
+            // Redirect to login page if not logged in
+            window.location.href = 'loginPage.html';
+        }
+
+        // Add contact and store it under the user's email
+        document.getElementById('contactForm').onsubmit = function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const number = document.getElementById('number').value;
+
+            const contactsKey = `emergencyContacts_${userEmail}`;
+
+            // Get existing contacts for the logged-in user
+            const contacts = JSON.parse(localStorage.getItem(contactsKey)) || [];
+
+            // Add new contact to the list
+            contacts.push({ name, number });
+
+            // Save back to local storage under the user-specific key
+            localStorage.setItem(contactsKey, JSON.stringify(contacts));
+
+            alert('Contact added successfully!');
+        };
+
+        // Back button functionality
+        document.getElementById('backButton').onclick = function() {
+            window.location.href = 'homePage.html'; // Change to the appropriate home page file name
+        };
+    </script>
+</body>
+</html>
